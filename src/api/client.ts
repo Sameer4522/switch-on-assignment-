@@ -3,6 +3,7 @@ import type { Asset, AssetPage, AssetQuery, BulkResult } from "@/lib/types";
 export type ApiError = Error & {
 	status: number;
 	code: string;
+	retryAfterMs?: number;
 };
 
 function toSearchParams(query: AssetQuery): string {
@@ -27,13 +28,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 	if (!res.ok) {
 		const body = await res.json().catch(() => null);
-		throw (
-			new Error(body?.error?.message ?? res.statusText),
-			{
-				status: res.status,
-				code: body?.error?.code ?? "unknown",
-			}
-		);
+		const retryAfter = res.headers.get("retry-after");
+		throw Object.assign(new Error(body?.error?.message ?? res.statusText), {
+			status: res.status,
+			code: body?.error?.code ?? "unknown",
+			retryAfterMs: retryAfter ? Number(retryAfter) * 1000 : undefined,
+		});
 	}
 
 	return res.json();

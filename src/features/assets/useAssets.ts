@@ -1,10 +1,13 @@
 import { listAssets } from "@/api/client";
-import { useFetchQuery } from "@/hooks/useFetchQuery";
+import { useFetchInfiniteQuery } from "@/hooks/useFetchQuery";
 import type { AssetPage, AssetQuery } from "@/lib/types";
 
 export function useAssets(query: AssetQuery) {
-	return useFetchQuery<AssetPage>({
+	return useFetchInfiniteQuery<AssetPage>({
 		queryKey: ["assets", query],
-		queryFn: ({ signal }) => listAssets(query, signal),
+		queryFn: ({ pageParam, signal }) =>
+			listAssets({ ...query, cursor: pageParam }, signal),
+		initialPageParam: undefined,
+		getNextPageParam: page => page.nextCursor ?? undefined,
 	});
 }
