@@ -54,11 +54,11 @@ export function App() {
 
 	useEffect(() => {
 		const current = new URLSearchParams(window.location.search).get("q") ?? "";
-		if (search !== current) apply({ q: search }, true);
+		if (search.trim() !== current) apply({ q: search.trim() }, true);
 	}, [search, apply]);
 
 	useEffect(() => {
-		setQ(filters.q);
+		setQ(prev => (prev.trim() === filters.q ? prev : filters.q));
 	}, [filters.q]);
 
 	useEffect(() => {
