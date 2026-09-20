@@ -6,22 +6,28 @@ interface Props {
 	assets: Asset[];
 	selectedIds: Set<string>;
 	activeId: string | null;
+	loading: boolean;
+	failed: boolean;
 	hasMore: boolean;
 	loadingMore: boolean;
 	onToggleSelect: (id: string) => void;
 	onOpen: (id: string) => void;
 	onLoadMore: () => void;
+	onRetry: () => void;
 }
 
 export function AssetGrid({
 	assets,
 	selectedIds,
 	activeId,
+	loading,
+	failed,
 	hasMore,
 	loadingMore,
 	onToggleSelect,
 	onOpen,
 	onLoadMore,
+	onRetry,
 }: Props) {
 	function handleScroll(event: any) {
 		if (!hasMore) return;
@@ -31,12 +37,34 @@ export function AssetGrid({
 		if (remaining < 400) onLoadMore();
 	}
 
+	if (loading) {
+		return (
+			<div className="grid">
+				{Array.from({ length: 12 }, (_, i) => (
+					<div key={i} className="card card--loading" />
+				))}
+			</div>
+		);
+	}
+
+	if (failed) {
+		return (
+			<div className="empty">
+				<p>These results could not be loaded.</p>
+				<p className="muted">
+					MediaVault did not answer. Nothing has been lost.
+				</p>
+				<button onClick={onRetry}>Try again</button>
+			</div>
+		);
+	}
+
 	if (assets.length === 0) {
 		return (
 			<div className="empty">
-				<p>Nothing matches these filters.</p>
+				<p>No assets match these filters.</p>
 				<p className="muted">
-					Clear the search box or widen the status filter.
+					Try a different search, or clear the status filters.
 				</p>
 			</div>
 		);
