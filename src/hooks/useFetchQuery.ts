@@ -4,7 +4,7 @@ export const useFetchQuery = <T>(options: UseQueryOptions<T>) =>
 	useQuery<T>({
 		retry: false,
 		refetchOnWindowFocus: false,
-		gcTime: 0,
-		staleTime: 1000 * 60 * 0,
+		gcTime: 1000 * 60 * 5,
+		staleTime: 1000 * 30,
 		...options,
 	});
