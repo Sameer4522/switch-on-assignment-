@@ -3,8 +3,10 @@ import {
 	type InfiniteData,
 	type QueryKey,
 	type UseInfiniteQueryOptions,
+	type UseMutationOptions,
 	type UseQueryOptions,
 	useInfiniteQuery,
+	useMutation,
 	useQuery,
 } from "@tanstack/react-query";
 
@@ -31,3 +33,12 @@ export const useFetchInfiniteQuery = <T>(
 		string | undefined
 	>
 ) => useInfiniteQuery({ ...defaults, ...options });
+
+export const useFetchMutation = <TData, TVars>(
+	options: UseMutationOptions<TData, Error, TVars>
+) =>
+	useMutation({
+		retry: defaults.retry,
+		retryDelay: defaults.retryDelay,
+		...options,
+	});
