@@ -4,10 +4,11 @@ import { AssetGrid } from "@/features/assets/AssetGrid";
 import { useAssets } from "@/features/assets/useAssets";
 import { canRetry, useBulkStatus } from "@/features/assets/useBulkStatus";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useUrlFilters } from "@/hooks/useUrlFilters";
 import { useOnline } from "@/hooks/useOnline";
 import { statusLabel } from "@/lib/format";
 import type { AssetQuery, AssetStatus } from "@/lib/types";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const STATUSES: AssetStatus[] = ["draft", "in_review", "approved", "archived"];
 const SORTS: Array<{ value: NonNullable<AssetQuery["sort"]>; label: string }> =
@@ -25,10 +26,8 @@ const FAILURE_REASONS: Record<string, string> = {
 };
 
 export function App() {
-	const [q, setQ] = useState("");
-	const [status, setStatus] = useState<AssetStatus[]>([]);
-	const [sort, setSort] =
-		useState<NonNullable<AssetQuery["sort"]>>("updatedAt:desc");
+	const { filters, apply } = useUrlFilters();
+	const [q, setQ] = useState(filters.q);
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -41,12 +40,7 @@ export function App() {
 		isFetchingNextPage,
 		fetchNextPage,
 		refetch,
-	} = useAssets({
-		q: search,
-		status,
-		sort,
-		limit: 50,
-	});
+	} = useAssets({ ...filters, limit: 50 });
 
 	const bulk = useBulkStatus();
 	const online = useOnline();
@@ -54,19 +48,54 @@ export function App() {
 	const items = data?.pages.flatMap(page => page.items) ?? [];
 	const total = data?.pages[0]?.total ?? 0;
 
+	const itemsRef = useRef(items);
+	itemsRef.current = items;
+	const anchorRef = useRef<number | null>(null);
+
+	useEffect(() => {
+		const current = new URLSearchParams(window.location.search).get("q") ?? "";
+		if (search !== current) apply({ q: search }, true);
+	}, [search, apply]);
+
+	useEffect(() => {
+		setQ(filters.q);
+	}, [filters.q]);
+
 	useEffect(() => {
 		setSelectedIds(new Set());
 		bulk.reset();
-	}, [search, status, sort]);
+	}, [filters]);
 
-	function toggleSelect(id: string) {
+	const toggleSelect = useCallback((id: string, index: number) => {
+		anchorRef.current = index;
 		setSelectedIds(prev => {
 			const next = new Set(prev);
 			if (next.has(id)) next.delete(id);
 			else next.add(id);
 			return next;
 		});
-	}
+	}, []);
+
+	const extendSelect = useCallback((index: number) => {
+		const from = anchorRef.current ?? index;
+		const start = Math.min(from, index);
+		const end = Math.max(from, index);
+
+		setSelectedIds(prev => {
+			const next = new Set(prev);
+			for (let i = start; i <= end; i++) {
+				const asset = itemsRef.current[i];
+				if (asset) next.add(asset.id);
+			}
+			return next;
+		});
+	}, []);
+
+	const selectAllLoaded = useCallback(() => {
+		setSelectedIds(new Set(itemsRef.current.map(asset => asset.id)));
+	}, []);
+
+	const openAsset = useCallback((id: string) => setActiveId(id), []);
 
 	function applyBulkStatus(next: AssetStatus, ids: string[]) {
 		if (ids.length === 0) return;
@@ -97,8 +126,8 @@ export function App() {
 					onChange={e => setQ(e.target.value)}
 				/>
 				<select
-					value={sort}
-					onChange={e => setSort(e.target.value as typeof sort)}
+					value={filters.sort}
+					onChange={e => apply({ sort: e.target.value as typeof filters.sort })}
 				>
 					{SORTS.map(option => (
 						<option key={option.value} value={option.value}>
@@ -113,11 +142,13 @@ export function App() {
 					<label key={s}>
 						<input
 							type="checkbox"
-							checked={status.includes(s)}
+							checked={filters.status.includes(s)}
 							onChange={e =>
-								setStatus(prev =>
-									e.target.checked ? [...prev, s] : prev.filter(x => x !== s)
-								)
+								apply({
+									status: e.target.checked
+										? [...filters.status, s]
+										: filters.status.filter(x => x !== s),
+								})
 							}
 						/>
 						{statusLabel(s)}
@@ -142,6 +173,7 @@ export function App() {
 							Set {statusLabel(s).toLowerCase()}
 						</button>
 					))}
+					<button onClick={selectAllLoaded}>Select all {items.length}</button>
 					<button onClick={() => setSelectedIds(new Set())}>
 						Clear selection
 					</button>
@@ -202,7 +234,8 @@ export function App() {
 						hasMore={hasNextPage && !isFetchingNextPage}
 						loadingMore={isFetchingNextPage}
 						onToggleSelect={toggleSelect}
-						onOpen={setActiveId}
+						onExtendSelect={extendSelect}
+						onOpen={openAsset}
 						onLoadMore={fetchNextPage}
 						onRetry={refetch}
 					/>
