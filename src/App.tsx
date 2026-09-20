@@ -1,11 +1,11 @@
-import { bulkSetStatus } from "@/api/client";
 import { AssetDetail } from "@/features/assets/AssetDetail";
 import { AssetGrid } from "@/features/assets/AssetGrid";
 import { useAssets } from "@/features/assets/useAssets";
+import { canRetry, useBulkStatus } from "@/features/assets/useBulkStatus";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { statusLabel } from "@/lib/format";
-import type { Asset, AssetQuery, AssetStatus } from "@/lib/types";
-import { useState } from "react";
+import type { AssetQuery, AssetStatus } from "@/lib/types";
+import { useEffect, useState } from "react";
 
 const STATUSES: AssetStatus[] = ["draft", "in_review", "approved", "archived"];
 const SORTS: Array<{ value: NonNullable<AssetQuery["sort"]>; label: string }> =
@@ -16,6 +16,12 @@ const SORTS: Array<{ value: NonNullable<AssetQuery["sort"]>; label: string }> =
 		{ value: "createdAt:desc", label: "Newest" },
 	];
 
+const FAILURE_REASONS: Record<string, string> = {
+	legal_hold: "on legal hold",
+	not_found: "no longer exists",
+	conflict: "was edited by someone else",
+};
+
 export function App() {
 	const [q, setQ] = useState("");
 	const [status, setStatus] = useState<AssetStatus[]>([]);
@@ -23,7 +29,6 @@ export function App() {
 		useState<NonNullable<AssetQuery["sort"]>>("updatedAt:desc");
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [activeId, setActiveId] = useState<string | null>(null);
-	const [notice, setNotice] = useState<string | null>(null);
 
 	const search = useDebouncedValue(q);
 	const {
@@ -40,8 +45,15 @@ export function App() {
 		limit: 50,
 	});
 
+	const bulk = useBulkStatus();
+
 	const items = data?.pages.flatMap(page => page.items) ?? [];
 	const total = data?.pages[0]?.total ?? 0;
+
+	useEffect(() => {
+		setSelectedIds(new Set());
+		bulk.reset();
+	}, [search, status, sort]);
 
 	function toggleSelect(id: string) {
 		setSelectedIds(prev => {
@@ -52,23 +64,22 @@ export function App() {
 		});
 	}
 
-	async function applyBulkStatus(next: AssetStatus) {
-		const ids = [...selectedIds];
+	function applyBulkStatus(next: AssetStatus, ids: string[]) {
 		if (ids.length === 0) return;
-		setNotice(null);
-		try {
-			// Sends every selected id in one call, which the API refuses above 50.
-			const result = await bulkSetStatus(ids, next);
-			setNotice(`${result.applied} updated, ${result.failed} failed.`);
-			setSelectedIds(new Set());
-		} catch (err) {
-			setNotice(err instanceof Error ? err.message : "Bulk update failed");
-		}
+
+		bulk.mutate(
+			{ ids, status: next },
+			{
+				onSuccess: ({ failures }) =>
+					setSelectedIds(new Set(failures.map(f => f.id))),
+			}
+		);
 	}
 
-	function handleSaved(_asset: Asset) {
-		// The list is not told that anything changed, so it shows stale rows.
-	}
+	const outcome = bulk.data;
+	const lastStatus = bulk.variables?.status;
+	const retryable = outcome?.failures.filter(f => canRetry(f.code)) ?? [];
+	const nameOf = (id: string) => items.find(a => a.id === id)?.name ?? id;
 
 	return (
 		<div className="app">
@@ -119,7 +130,11 @@ export function App() {
 				<div className="bulkbar">
 					<span>{selectedIds.size} selected</span>
 					{STATUSES.map(s => (
-						<button key={s} onClick={() => applyBulkStatus(s)}>
+						<button
+							key={s}
+							disabled={bulk.isPending}
+							onClick={() => applyBulkStatus(s, [...selectedIds])}
+						>
 							Set {statusLabel(s).toLowerCase()}
 						</button>
 					))}
@@ -129,8 +144,43 @@ export function App() {
 				</div>
 			)}
 
-			{notice && <p className="notice">{notice}</p>}
-			{error && <p className="error">{error.message}</p>}
+			{bulk.isPending && <p className="notice">Updating assets…</p>}
+
+			{outcome && !bulk.isPending && (
+				<div className="notice">
+					<p>
+						{outcome.applied.length} updated
+						{outcome.failures.length > 0 &&
+							`, ${outcome.failures.length} left unchanged`}
+					</p>
+
+					{outcome.failures.length > 0 && (
+						<ul className="failures">
+							{outcome.failures.map(failure => (
+								<li key={failure.id}>
+									{nameOf(failure.id)} —{" "}
+									{FAILURE_REASONS[failure.code] ?? "could not be updated"}
+								</li>
+							))}
+						</ul>
+					)}
+
+					{retryable.length > 0 && lastStatus && (
+						<button
+							onClick={() =>
+								applyBulkStatus(
+									lastStatus,
+									retryable.map(f => f.id)
+								)
+							}
+						>
+							Retry {retryable.length}
+						</button>
+					)}
+				</div>
+			)}
+
+			{error && <p className="error">Results could not be loaded.</p>}
 
 			<main className="content">
 				<AssetGrid
@@ -144,11 +194,7 @@ export function App() {
 					onLoadMore={fetchNextPage}
 				/>
 				{activeId && (
-					<AssetDetail
-						id={activeId}
-						onClose={() => setActiveId(null)}
-						onSaved={handleSaved}
-					/>
+					<AssetDetail id={activeId} onClose={() => setActiveId(null)} />
 				)}
 			</main>
 		</div>

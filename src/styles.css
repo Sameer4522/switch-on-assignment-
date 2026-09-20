@@ -292,3 +292,19 @@ button:disabled {
     border-top: 1px solid var(--line);
   }
 }
+
+.failures {
+  margin: 6px 0 8px;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.conflict {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-soft);
+  font-size: 13px;
+}

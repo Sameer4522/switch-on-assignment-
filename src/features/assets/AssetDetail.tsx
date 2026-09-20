@@ -1,54 +1,38 @@
-import { getAsset, updateAsset } from "@/api/client";
+import type { ApiError } from "@/api/client";
 import {
 	formatBytes,
 	formatDate,
 	formatDuration,
 	statusLabel,
 } from "@/lib/format";
-import type { Asset, AssetStatus } from "@/lib/types";
+import type { AssetStatus } from "@/lib/types";
+import { useState } from "react";
 import { Thumbnail } from "./Thumbnail";
-import { useEffect, useState } from "react";
+import { useAsset, useSetAssetStatus } from "./useAsset";
 
 const STATUSES: AssetStatus[] = ["draft", "in_review", "approved", "archived"];
 
 interface Props {
 	id: string;
 	onClose: () => void;
-	onSaved: (asset: Asset) => void;
 }
 
-/**
- * Baseline detail panel. Loads on open, saves with no optimistic update,
- * surfaces failures as raw strings, and does nothing about focus.
- */
-export function AssetDetail({ id, onClose, onSaved }: Props) {
-	const [asset, setAsset] = useState<Asset | null>(null);
-	const [error, setError] = useState<string | null>(null);
-	const [saving, setSaving] = useState(false);
+export function AssetDetail({ id, onClose }: Props) {
+	const { data: asset, isPending, error } = useAsset(id);
+	const save = useSetAssetStatus(id);
+	const [wanted, setWanted] = useState<AssetStatus | null>(null);
 
-	useEffect(() => {
-		setAsset(null);
-		setError(null);
-		getAsset(id)
-			.then(setAsset)
-			.catch((err: unknown) =>
-				setError(err instanceof Error ? err.message : "Load failed")
-			);
-	}, [id]);
+	const conflict = (save.error as ApiError | null)?.code === "version_conflict";
 
-	async function setStatus(status: AssetStatus) {
+	function setStatus(status: AssetStatus) {
 		if (!asset) return;
-		setSaving(true);
-		setError(null);
-		try {
-			const updated = await updateAsset(asset.id, asset.version, { status });
-			setAsset(updated);
-			onSaved(updated);
-		} catch (err: unknown) {
-			setError(err instanceof Error ? err.message : "Save failed");
-		} finally {
-			setSaving(false);
-		}
+		setWanted(status);
+		save.mutate({ version: asset.version, status });
+	}
+
+	function keepTheirs() {
+		setWanted(null);
+		save.reset();
 	}
 
 	return (
@@ -58,8 +42,8 @@ export function AssetDetail({ id, onClose, onSaved }: Props) {
 				<button onClick={onClose}>Close</button>
 			</div>
 
-			{error && <p className="error">{error}</p>}
-			{!asset && !error && <p className="muted">Loading…</p>}
+			{isPending && <p className="muted">Loading…</p>}
+			{error && <p className="error">This asset could not be loaded.</p>}
 
 			{asset && (
 				<div className="panel__body">
@@ -102,12 +86,31 @@ export function AssetDetail({ id, onClose, onSaved }: Props) {
 						</ul>
 					)}
 
+					{conflict && wanted && (
+						<div className="conflict">
+							<p>
+								Someone else changed this asset while you had it open. It is now{" "}
+								<strong>{statusLabel(asset.status)}</strong>.
+							</p>
+							<div className="row">
+								<button onClick={() => setStatus(wanted)}>
+									Still set {statusLabel(wanted).toLowerCase()}
+								</button>
+								<button onClick={keepTheirs}>Keep their change</button>
+							</div>
+						</div>
+					)}
+
+					{save.isError && !conflict && (
+						<p className="error">That change did not save. Try again.</p>
+					)}
+
 					<p className="muted">Status</p>
 					<div className="row">
 						{STATUSES.map(status => (
 							<button
 								key={status}
-								disabled={saving || status === asset.status}
+								disabled={save.isPending || status === asset.status}
 								onClick={() => setStatus(status)}
 							>
 								{statusLabel(status)}
