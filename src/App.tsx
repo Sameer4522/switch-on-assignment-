@@ -1,8 +1,10 @@
+import { ErrorBoundary } from "@/ErrorBoundary";
 import { AssetDetail } from "@/features/assets/AssetDetail";
 import { AssetGrid } from "@/features/assets/AssetGrid";
 import { useAssets } from "@/features/assets/useAssets";
 import { canRetry, useBulkStatus } from "@/features/assets/useBulkStatus";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useOnline } from "@/hooks/useOnline";
 import { statusLabel } from "@/lib/format";
 import type { AssetQuery, AssetStatus } from "@/lib/types";
 import { useEffect, useState } from "react";
@@ -38,6 +40,7 @@ export function App() {
 		hasNextPage,
 		isFetchingNextPage,
 		fetchNextPage,
+		refetch,
 	} = useAssets({
 		q: search,
 		status,
@@ -46,6 +49,7 @@ export function App() {
 	});
 
 	const bulk = useBulkStatus();
+	const online = useOnline();
 
 	const items = data?.pages.flatMap(page => page.items) ?? [];
 	const total = data?.pages[0]?.total ?? 0;
@@ -144,6 +148,13 @@ export function App() {
 				</div>
 			)}
 
+			{!online && (
+				<p className="offline">
+					You are offline. MediaVault will pick up where it left off once the
+					connection is back.
+				</p>
+			)}
+
 			{bulk.isPending && <p className="notice">Updating assets…</p>}
 
 			{outcome && !bulk.isPending && (
@@ -180,21 +191,27 @@ export function App() {
 				</div>
 			)}
 
-			{error && <p className="error">Results could not be loaded.</p>}
-
 			<main className="content">
-				<AssetGrid
-					assets={items}
-					selectedIds={selectedIds}
-					activeId={activeId}
-					hasMore={hasNextPage && !isFetchingNextPage}
-					loadingMore={isFetchingNextPage}
-					onToggleSelect={toggleSelect}
-					onOpen={setActiveId}
-					onLoadMore={fetchNextPage}
-				/>
+				<ErrorBoundary>
+					<AssetGrid
+						assets={items}
+						selectedIds={selectedIds}
+						activeId={activeId}
+						loading={isPending}
+						failed={Boolean(error)}
+						hasMore={hasNextPage && !isFetchingNextPage}
+						loadingMore={isFetchingNextPage}
+						onToggleSelect={toggleSelect}
+						onOpen={setActiveId}
+						onLoadMore={fetchNextPage}
+						onRetry={refetch}
+					/>
+				</ErrorBoundary>
+
 				{activeId && (
-					<AssetDetail id={activeId} onClose={() => setActiveId(null)} />
+					<ErrorBoundary>
+						<AssetDetail id={activeId} onClose={() => setActiveId(null)} />
+					</ErrorBoundary>
 				)}
 			</main>
 		</div>
