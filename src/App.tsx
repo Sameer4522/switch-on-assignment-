@@ -26,15 +26,22 @@ export function App() {
 	const [notice, setNotice] = useState<string | null>(null);
 
 	const search = useDebouncedValue(q);
-	const { data, isPending, error } = useAssets({
+	const {
+		data,
+		isPending,
+		error,
+		hasNextPage,
+		isFetchingNextPage,
+		fetchNextPage,
+	} = useAssets({
 		q: search,
 		status,
 		sort,
-		limit: 24,
+		limit: 50,
 	});
 
-	const items = data?.items ?? [];
-	const total = data?.total ?? 0;
+	const items = data?.pages.flatMap(page => page.items) ?? [];
+	const total = data?.pages[0]?.total ?? 0;
 
 	function toggleSelect(id: string) {
 		setSelectedIds(prev => {
@@ -130,8 +137,11 @@ export function App() {
 					assets={items}
 					selectedIds={selectedIds}
 					activeId={activeId}
+					hasMore={hasNextPage && !isFetchingNextPage}
+					loadingMore={isFetchingNextPage}
 					onToggleSelect={toggleSelect}
 					onOpen={setActiveId}
+					onLoadMore={fetchNextPage}
 				/>
 				{activeId && (
 					<AssetDetail

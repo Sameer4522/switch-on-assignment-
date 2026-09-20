@@ -1,26 +1,36 @@
-import { thumbnailUrl } from "@/api/client";
 import { formatBytes, formatDate, statusLabel } from "@/lib/format";
 import type { Asset } from "@/lib/types";
+import { Thumbnail } from "./Thumbnail";
 
 interface Props {
 	assets: Asset[];
 	selectedIds: Set<string>;
 	activeId: string | null;
+	hasMore: boolean;
+	loadingMore: boolean;
 	onToggleSelect: (id: string) => void;
 	onOpen: (id: string) => void;
+	onLoadMore: () => void;
 }
 
-/**
- * Baseline grid. Renders every row it is given, re-renders every card on any
- * selection change, and is not reachable by keyboard.
- */
 export function AssetGrid({
 	assets,
 	selectedIds,
 	activeId,
+	hasMore,
+	loadingMore,
 	onToggleSelect,
 	onOpen,
+	onLoadMore,
 }: Props) {
+	function handleScroll(event: any) {
+		if (!hasMore) return;
+
+		const grid = event.currentTarget;
+		const remaining = grid.scrollHeight - grid.scrollTop - grid.clientHeight;
+		if (remaining < 400) onLoadMore();
+	}
+
 	if (assets.length === 0) {
 		return (
 			<div className="empty">
@@ -33,7 +43,7 @@ export function AssetGrid({
 	}
 
 	return (
-		<div className="grid">
+		<div className="grid" onScroll={handleScroll}>
 			{assets.map(asset => (
 				<div
 					key={asset.id}
@@ -44,7 +54,7 @@ export function AssetGrid({
 					}
 					onClick={() => onOpen(asset.id)}
 				>
-					<img className="card__thumb" src={thumbnailUrl(asset.id)} alt="" />
+					<Thumbnail asset={asset} className="card__thumb" />
 					<div className="card__body">
 						<p className="card__name">{asset.name}</p>
 						<p className="muted">
@@ -64,6 +74,8 @@ export function AssetGrid({
 					/>
 				</div>
 			))}
+
+			{loadingMore && <div className="grid__end">Loading more…</div>}
 		</div>
 	);
 }
