@@ -2,7 +2,7 @@
 
 ## Video walkthrough
 
-**Link:**
+**Link:** https://drive.google.com/file/d/15a0YSZqtUBZwbhHKO18hUV9a7fMH5Qs8/view?usp=sharing
 
 ---
 
@@ -19,7 +19,7 @@ request counts.
 
 ## Time spent
 
-About ___ hours, spread over a few evenings. Roughly how it split:
+About 3 hours, spread over a few evenings. Roughly how it split:
 
 - reading `API.md` and poking the server with a throwaway node script before
   writing any UI
@@ -37,35 +37,35 @@ About ___ hours, spread over a few evenings. Roughly how it split:
 I tried to keep this precise rather than long. Everything below I actually
 reproduced, either in the browser or with a node script against the server.
 
-| #  | Defect | Where | Status |
-| --- | --- | --- | --- |
-| 1  | Bulk update sends every selected id in one call, so anything over 50 fails with `400 too_many_ids` | `App.tsx` | fixed |
-| 2  | A slow earlier response overwrites a newer one. The effect resolves and calls `setState` with no ordering guarantee | `useAssets.ts` | fixed |
-| 3  | No request cancellation anywhere. Superseded searches run to completion and still cost rate-limit budget | `client.ts` | fixed |
-| 4  | Every keystroke fires a request. Nothing debounced | `App.tsx` | fixed |
-| 5  | Detail panel has the same unguarded race. Open A then B quickly and A can land last | `AssetDetail.tsx` | fixed |
-| 6  | Pagination is dead code. `nextCursor` is stored in state and never read, so the app shows 24 of 12,400 forever | `useAssets.ts` | fixed |
-| 7  | `handleSaved` is an empty function, so a successful save never reaches the grid | `App.tsx` | fixed |
-| 8  | Bulk clears the whole selection on any resolved response including `207`, so the failed ids are lost and there's nothing left to retry | `App.tsx` | fixed |
-| 9  | `409` is sticky. The panel never refreshes `asset.version`, so every later save sends the same stale version and also 409s. Only a close and reopen recovers it | `AssetDetail.tsx` | fixed |
-| 10 | Selection survives a filter change, so the bulk bar can act on rows that are no longer on screen | `App.tsx` | fixed — selection clears |
-| 11 | No retries. ~6% of list loads and ~12% of single saves fail outright, both of which the contract marks retryable | `client.ts` | fixed |
-| 12 | Errors flattened to `` `${status}: ${detail}` ``, throwing away the documented `error.code`. No caller can tell retryable from not, and raw server text reaches the user | `client.ts` | fixed |
-| 13 | Identical concurrent requests are not de-duplicated | `client.ts` | fixed |
-| 14 | Loading, empty and error all render as the empty state. On a failed first load the grid says "Clear the search box or widen the status filter", which is wrong advice for a 503 | `AssetGrid.tsx` | fixed |
-| 15 | No error boundary, so any throw below `App` blanks the page | `main.tsx` | fixed |
-| 16 | No offline detection. A dropped connection surfaced `Failed to fetch` | — | fixed |
-| 17 | Query state lives only in component state, so reload or sharing the URL loses the view | `App.tsx` | fixed |
-| 18 | No virtualization. Every row handed to the grid is rendered | `AssetGrid.tsx` | fixed |
-| 19 | Toggling one checkbox re-renders every card. No memo, and `selectedIds` is a fresh `Set` each time | `AssetGrid.tsx` | fixed |
-| 20 | Thumbnails requested for the 510 assets whose `hasThumbnail` is `false` — a guaranteed 404 each — with no `onError` fallback | `AssetGrid.tsx` | fixed |
-| 21 | No `loading="lazy"`, and the panel thumbnail reserves no space so it shifts the layout when it lands | `AssetGrid.tsx`, `styles.css` | fixed |
-| 22 | `.grid` sized its rows to fit the container instead of their content, so cards were always clipped and the grid never overflowed. Not on my first pass — I only found it when I measured | `styles.css` | fixed |
-| 23 | Grid is unreachable by keyboard. Cards are `div`s with `onClick`, no `tabIndex`, no `role`, no key handling | `AssetGrid.tsx` | knowingly left |
-| 24 | Checkbox has no accessible name, selection isn't exposed via `aria-selected`, and there's no live region for counts or bulk outcomes | `AssetGrid.tsx` | knowingly left |
-| 25 | Detail panel does nothing about focus. Opening doesn't move into it, closing doesn't return, `Escape` doesn't close | `AssetDetail.tsx` | knowingly left |
-| 26 | The four statuses don't read as a progression, and `.pill--draft` has no rule at all so draft falls back to the default pill | `styles.css` | knowingly left |
-| 27 | Status filter is stored in click order, so ticking draft then approved produces a different cache key than approved then draft for an identical query | `App.tsx` | knowingly left (see cuts) |
+| #   | Defect                                                                                                                                                                                   | Where                         | Status                    |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------- |
+| 1   | Bulk update sends every selected id in one call, so anything over 50 fails with `400 too_many_ids`                                                                                       | `App.tsx`                     | fixed                     |
+| 2   | A slow earlier response overwrites a newer one. The effect resolves and calls `setState` with no ordering guarantee                                                                      | `useAssets.ts`                | fixed                     |
+| 3   | No request cancellation anywhere. Superseded searches run to completion and still cost rate-limit budget                                                                                 | `client.ts`                   | fixed                     |
+| 4   | Every keystroke fires a request. Nothing debounced                                                                                                                                       | `App.tsx`                     | fixed                     |
+| 5   | Detail panel has the same unguarded race. Open A then B quickly and A can land last                                                                                                      | `AssetDetail.tsx`             | fixed                     |
+| 6   | Pagination is dead code. `nextCursor` is stored in state and never read, so the app shows 24 of 12,400 forever                                                                           | `useAssets.ts`                | fixed                     |
+| 7   | `handleSaved` is an empty function, so a successful save never reaches the grid                                                                                                          | `App.tsx`                     | fixed                     |
+| 8   | Bulk clears the whole selection on any resolved response including `207`, so the failed ids are lost and there's nothing left to retry                                                   | `App.tsx`                     | fixed                     |
+| 9   | `409` is sticky. The panel never refreshes `asset.version`, so every later save sends the same stale version and also 409s. Only a close and reopen recovers it                          | `AssetDetail.tsx`             | fixed                     |
+| 10  | Selection survives a filter change, so the bulk bar can act on rows that are no longer on screen                                                                                         | `App.tsx`                     | fixed — selection clears  |
+| 11  | No retries. ~6% of list loads and ~12% of single saves fail outright, both of which the contract marks retryable                                                                         | `client.ts`                   | fixed                     |
+| 12  | Errors flattened to `` `${status}: ${detail}` ``, throwing away the documented `error.code`. No caller can tell retryable from not, and raw server text reaches the user                 | `client.ts`                   | fixed                     |
+| 13  | Identical concurrent requests are not de-duplicated                                                                                                                                      | `client.ts`                   | fixed                     |
+| 14  | Loading, empty and error all render as the empty state. On a failed first load the grid says "Clear the search box or widen the status filter", which is wrong advice for a 503          | `AssetGrid.tsx`               | fixed                     |
+| 15  | No error boundary, so any throw below `App` blanks the page                                                                                                                              | `main.tsx`                    | fixed                     |
+| 16  | No offline detection. A dropped connection surfaced `Failed to fetch`                                                                                                                    | —                             | fixed                     |
+| 17  | Query state lives only in component state, so reload or sharing the URL loses the view                                                                                                   | `App.tsx`                     | fixed                     |
+| 18  | No virtualization. Every row handed to the grid is rendered                                                                                                                              | `AssetGrid.tsx`               | fixed                     |
+| 19  | Toggling one checkbox re-renders every card. No memo, and `selectedIds` is a fresh `Set` each time                                                                                       | `AssetGrid.tsx`               | fixed                     |
+| 20  | Thumbnails requested for the 510 assets whose `hasThumbnail` is `false` — a guaranteed 404 each — with no `onError` fallback                                                             | `AssetGrid.tsx`               | fixed                     |
+| 21  | No `loading="lazy"`, and the panel thumbnail reserves no space so it shifts the layout when it lands                                                                                     | `AssetGrid.tsx`, `styles.css` | fixed                     |
+| 22  | `.grid` sized its rows to fit the container instead of their content, so cards were always clipped and the grid never overflowed. Not on my first pass — I only found it when I measured | `styles.css`                  | fixed                     |
+| 23  | Grid is unreachable by keyboard. Cards are `div`s with `onClick`, no `tabIndex`, no `role`, no key handling                                                                              | `AssetGrid.tsx`               | knowingly left            |
+| 24  | Checkbox has no accessible name, selection isn't exposed via `aria-selected`, and there's no live region for counts or bulk outcomes                                                     | `AssetGrid.tsx`               | knowingly left            |
+| 25  | Detail panel does nothing about focus. Opening doesn't move into it, closing doesn't return, `Escape` doesn't close                                                                      | `AssetDetail.tsx`             | knowingly left            |
+| 26  | The four statuses don't read as a progression, and `.pill--draft` has no rule at all so draft falls back to the default pill                                                             | `styles.css`                  | knowingly left            |
+| 27  | Status filter is stored in click order, so ticking draft then approved produces a different cache key than approved then draft for an identical query                                    | `App.tsx`                     | knowingly left (see cuts) |
 
 Two things I checked and decided **not** to claim as defects:
 
@@ -83,7 +83,7 @@ Two things I checked and decided **not** to claim as defects:
 
 - **The race is real.** Firing `q=tra` and then `q=trail runner` 120 ms later,
   `trail runner` (569 matches) landed at +474 ms and `tra` (1,205 matches) at
-  +707 ms. The earlier request finished 233 ms *after* the newer one, so the
+  +707 ms. The earlier request finished 233 ms _after_ the newer one, so the
   baseline replaced 569 correct rows with 1,205 wrong ones.
 - **The bulk cap is hard.** 50 ids returns `207`, 51 returns `400 too_many_ids`.
 - **Partial failure isn't only chaos.** With `CHAOS=0` a 50-id bulk still came
@@ -113,8 +113,8 @@ where it got ugly.
 **Stale response handling**
 
 This is the bit I'd point at first. The query key is `["assets", filters]`, and
-`filters` contains the search text. So a response for `tra` has *nowhere to
-write* once the key is `trail runner` — it isn't that I detect the stale
+`filters` contains the search text. So a response for `tra` has _nowhere to
+write_ once the key is `trail runner` — it isn't that I detect the stale
 response and ignore it, it's that there's no slot for it. Same mechanism kills
 the `stale_cursor` problem: changing a filter creates a different cache entry
 which starts from `initialPageParam: undefined`, so a cursor issued for the old
@@ -168,7 +168,7 @@ offers "Still set in review" or "Keep their change".
 My reasoning: auto-overwriting throws away someone else's review decision, and
 auto-discarding throws away this user's intent. Both are real losses and neither
 is mine to pick. Status here isn't an incidental field, it's a workflow
-decision, so a human should make it. "Still set" re-submits with the *fresh*
+decision, so a human should make it. "Still set" re-submits with the _fresh_
 version, which is exactly what was broken in the baseline.
 
 If this were a field where last-write-wins is obviously fine (a description,
@@ -198,7 +198,7 @@ cases that can't occur is just noise.
 **State placement and URL sync**
 
 `useUrlFilters` treats the URL as the single source of truth. `apply()` writes
-to history and then *re-reads* the URL to set state, so the two can't disagree.
+to history and then _re-reads_ the URL to set state, so the two can't disagree.
 
 Search uses `replaceState` and filters use `pushState`, which is why typing a
 5-character word leaves one history entry instead of five.
@@ -216,13 +216,13 @@ Measured on Windows 11, Chrome 153, against the dev server with chaos on.
 Because it's dev, StrictMode is double-invoking, so if anything these are
 pessimistic. Bundle is from the production build.
 
-| Metric | Before | After | How measured |
-| --- | --- | --- | --- |
-| Rendered DOM nodes at 5,000 rows loaded | baseline couldn't reach 5,000 — pagination was dead and it capped at 24 rows / 24 cards | **40 cards, 321 total DOM nodes** (virtual canvas 262,000 px, JS heap 24 MB) | scrolled to exactly `5000 of 12,400 shown`, then `document.getElementsByTagName("*").length` via a puppeteer script |
-| Cards re-rendered when toggling one selection | all of them — no memo, and a new `Set` identity on every toggle | **1** | temporary counter incremented in the `AssetCard` body, zeroed, one checkbox clicked, then read back. Reported 2 in dev because StrictMode renders twice; the other 34 mounted cards didn't render at all |
-| Longest task during sustained scroll | n/a — the grid never overflowed, so it couldn't be scrolled (defect 22) | **0 tasks over 50 ms** | `PerformanceObserver` on `longtask` across 120 scroll steps with 5,000 rows loaded |
-| Requests fired while typing a 6-character query | 6 (one per keystroke) | **1** | counted `/api/assets` requests in puppeteer while typing `runner` at 90 ms/char |
-| Production bundle, gzipped | 48 kB (per the README) | **71.4 kB JS + 1.3 kB CSS** | `npm run build` |
+| Metric                                          | Before                                                                                  | After                                                                        | How measured                                                                                                                                                                                             |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rendered DOM nodes at 5,000 rows loaded         | baseline couldn't reach 5,000 — pagination was dead and it capped at 24 rows / 24 cards | **40 cards, 321 total DOM nodes** (virtual canvas 262,000 px, JS heap 24 MB) | scrolled to exactly `5000 of 12,400 shown`, then `document.getElementsByTagName("*").length` via a puppeteer script                                                                                      |
+| Cards re-rendered when toggling one selection   | all of them — no memo, and a new `Set` identity on every toggle                         | **1**                                                                        | temporary counter incremented in the `AssetCard` body, zeroed, one checkbox clicked, then read back. Reported 2 in dev because StrictMode renders twice; the other 34 mounted cards didn't render at all |
+| Longest task during sustained scroll            | n/a — the grid never overflowed, so it couldn't be scrolled (defect 22)                 | **0 tasks over 50 ms**                                                       | `PerformanceObserver` on `longtask` across 120 scroll steps with 5,000 rows loaded                                                                                                                       |
+| Requests fired while typing a 6-character query | 6 (one per keystroke)                                                                   | **1**                                                                        | counted `/api/assets` requests in puppeteer while typing `runner` at 90 ms/char                                                                                                                          |
+| Production bundle, gzipped                      | 48 kB (per the README)                                                                  | **71.4 kB JS + 1.3 kB CSS**                                                  | `npm run build`                                                                                                                                                                                          |
 
 **What the actual bottleneck was, and how I found it**
 
@@ -296,7 +296,7 @@ What did change, because the engineering tasks demanded it:
   `assets.length === 0` check standing in for all three. Loading is skeleton
   cards at the real card height, so nothing shifts when data lands.
 - **Copy.** I rewrote every message a user can see. `429: Too many requests in
-  the last 10 seconds.` became "You are offline. MediaVault will pick up where
+the last 10 seconds.` became "You are offline. MediaVault will pick up where
   it left off once the connection is back" or "These results could not be
   loaded. MediaVault did not answer. Nothing has been lost", depending on what
   happened. Bulk failures are named per asset with a reason in plain words:

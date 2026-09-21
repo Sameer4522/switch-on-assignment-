@@ -13,12 +13,12 @@ someone would want to work in it all day.
 
 ## At a glance
 
-| | |
-| --- | --- |
-| **Effort** | 10–14 focused hours, spread over up to 7 days |
-| **You send back** | A public Git repo link + deployed link + a 5 minute video |
-| **Also fill in** | `SUBMISSION.md` in the repo root — it is scored |
-| **Doubts/Bugs** | Any questions can be asked via email to **karan@switchon.io** Asking is fine and costs you nothing |
+|                   |                                                                                                    |
+| ----------------- | -------------------------------------------------------------------------------------------------- |
+| **Effort**        | 10–14 focused hours, spread over up to 7 days                                                      |
+| **You send back** | A public Git repo link + deployed link + a 5 minute video                                          |
+| **Also fill in**  | `SUBMISSION.md` in the repo root — it is scored                                                    |
+| **Doubts/Bugs**   | Any questions can be asked via email to **karan@switchon.io** Asking is fine and costs you nothing |
 
 **You are not expected to finish everything.** We would rather see four tasks done
 to a standard you would defend in code review than seven done roughly. If you run
@@ -53,8 +53,8 @@ your stack is, or how much of the brief you can cover shallowly.
 
 ```bash
 node --version   # must be 20.11 or newer
-npm install
-npm run dev
+yarn install # I used yarn; npm install also works.
+yarn dev
 ```
 
 That starts two things:
@@ -78,16 +78,16 @@ video, we can go and look at it.
 This is the point of the exercise, not an accident. By default it adds latency,
 fails intermittently, and rate limits you.
 
-| Behaviour | Detail | Why it is there |
-| --- | --- | --- |
-| **Latency** | 90–350ms baseline; broad queries and short `q` prefixes are **slower** than narrow ones | Makes responses arrive out of order, so search races are reproducible rather than theoretical |
-| **Flaky reads** | ~6% of `GET /api/assets` return `503` with `Retry-After: 2` | You need retries |
-| **Flaky writes** | ~12% of single-asset `PATCH` return `500` | You need retries that know which failures are safe to repeat |
-| **Rate limit** | 80 requests per rolling 10s window → `429` with `Retry-After: 3`. **Retries count towards it** | A retry storm makes things worse, which is the point |
-| **Hard caps** | Bulk update ≤ 50 ids, batch fetch ≤ 25 ids | You have to chunk |
-| **Conflicts** | `PATCH` requires the current `version`, returns `409` if stale | Someone else edited the row |
-| **Partial success** | Bulk returns `207` with a per-id result array | "Did it work" is not a yes/no |
-| **Missing thumbnails** | ~4% of assets have no rendered thumbnail and return `404` | Images fail; layouts should not |
+| Behaviour              | Detail                                                                                         | Why it is there                                                                               |
+| ---------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Latency**            | 90–350ms baseline; broad queries and short `q` prefixes are **slower** than narrow ones        | Makes responses arrive out of order, so search races are reproducible rather than theoretical |
+| **Flaky reads**        | ~6% of `GET /api/assets` return `503` with `Retry-After: 2`                                    | You need retries                                                                              |
+| **Flaky writes**       | ~12% of single-asset `PATCH` return `500`                                                      | You need retries that know which failures are safe to repeat                                  |
+| **Rate limit**         | 80 requests per rolling 10s window → `429` with `Retry-After: 3`. **Retries count towards it** | A retry storm makes things worse, which is the point                                          |
+| **Hard caps**          | Bulk update ≤ 50 ids, batch fetch ≤ 25 ids                                                     | You have to chunk                                                                             |
+| **Conflicts**          | `PATCH` requires the current `version`, returns `409` if stale                                 | Someone else edited the row                                                                   |
+| **Partial success**    | Bulk returns `207` with a per-id result array                                                  | "Did it work" is not a yes/no                                                                 |
+| **Missing thumbnails** | ~4% of assets have no rendered thumbnail and return `404`                                      | Images fail; layouts should not                                                               |
 
 While building, you may quieten it:
 
@@ -229,11 +229,11 @@ baseline show you the wrong rows.
 
 **Performance budget — measure, do not estimate**
 
-| What | Target |
-| --- | --- |
-| Toggling selection on one card | Must not re-render the other cards. Show this with React DevTools Profiler or your own instrumentation |
-| Sustained scroll with 5,000+ rows loaded | Stays smooth; no long tasks over 50ms |
-| Production bundle, gzipped | Baseline is **48 kB**. No hard ceiling, but be ready to justify a large jump |
+| What                                     | Target                                                                                                 |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Toggling selection on one card           | Must not re-render the other cards. Show this with React DevTools Profiler or your own instrumentation |
+| Sustained scroll with 5,000+ rows loaded | Stays smooth; no long tasks over 50ms                                                                  |
+| Production bundle, gzipped               | Baseline is **48 kB**. No hard ceiling, but be ready to justify a large jump                           |
 
 Record the numbers, **how you measured them**, and what you changed to get there.
 Before-and-after evidence beats a claim. If a number is one you could not measure
@@ -283,7 +283,7 @@ A reviewer selects a large set and applies a status.
 - An **error boundary** keeps a component-level failure from blanking the page,
   and offers a way back.
 - **Errors reaching the user are actionable.** `429: Too many requests in the last
-  10 seconds.` is a leaked implementation detail, not a message.
+10 seconds.` is a leaked implementation detail, not a message.
 
 ---
 
@@ -387,7 +387,7 @@ just tell us why.
 
 ### AI assistants
 
-**Allowed. We assume you use them.** But you will walk us through this code and extend it live, 
+**Allowed. We assume you use them.** But you will walk us through this code and extend it live,
 so **do not ship anything you cannot
 explain, defend, or debug.** Unexplained code is the fastest way to fail this
 stage.
@@ -404,7 +404,7 @@ page, a settings screen, or a dark mode nobody asked for.
 
 1. **A public Git repo link** (GitHub, GitLab, whatever) with **real commit
    history**. Please do not squash everything into one commit — we read the
-   history. A **deployed link** will be appreciated. 
+   history. A **deployed link** will be appreciated.
 2. **`SUBMISSION.md` filled in**, in the repo root. The template is already there.
 3. **A 5 minute video walkthrough** — Loom, or any screen recording with a
    shareable link. Put the link at the top of `SUBMISSION.md` as well as in your
@@ -487,5 +487,5 @@ cut. Knowing what to leave out is part of what we are looking at.
 Send the submission email with your **repo link**, **deployed link** and **video link** when you are
 done to **karan@switchon.io** and cc the following: **abhijeet@switchon.io, ayush@switchon.io, tom@switchon.io, muskan@switchon.io**
 
- Good luck — and if you get stuck on something that turns out to be our bug
+Good luck — and if you get stuck on something that turns out to be our bug
 rather than yours, we would genuinely like to know.
